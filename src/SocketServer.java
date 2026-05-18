@@ -40,6 +40,14 @@ public class SocketServer {
         clients.remove(st);
     }
 
+    public synchronized ArrayList<ServerThread> getClients() {
+        return clients;
+    }
+
+    public SQLiteLogger getLogger() {
+        return logger;
+    }
+
     public synchronized void broadcast(String msg) {
         logger.log("BROADCAST: " + msg);
         for (ServerThread st : clients) {
@@ -68,6 +76,17 @@ class ServerThread extends Thread {
         pw.println(msg);
     }
 
+    private void sendUserList() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Connected users:\n");
+
+        for (ServerThread st : server.getClients()) {
+            sb.append(" - ").append(st.name).append("\n");
+        }
+
+        pw.println(sb.toString());
+    }
+
     @Override
     public void run() {
         try {
@@ -81,8 +100,18 @@ class ServerThread extends Thread {
 
             String msg;
             while ((msg = br.readLine()) != null) {
+
+                // USER LIST COMMAND
+                if (msg.equalsIgnoreCase("/list")) {
+                    server.getLogger().log("USER LIST REQUEST by " + name);
+                    sendUserList();
+                    continue;
+                }
+
+                 // NORMAL MESSAGE
                 server.broadcast("[" + name + "]: " + msg);
             }
+
 
         } catch (Exception e) {
             server.broadcast("**[" + name + "] left the chat**");
